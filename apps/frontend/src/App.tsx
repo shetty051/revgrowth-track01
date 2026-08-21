@@ -51,11 +51,31 @@ export function App() {
     auditEventsToday: 18,
   });
 
-  // Modal confirmation state
+  const [auditLogs, setAuditLogs] = useState<any[]>([]);
   const [selectedOpp, setSelectedOpp] = useState<Opportunity | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [confirming, setConfirming] = useState(false);
   const [confirmedSuccess, setConfirmedSuccess] = useState(false);
+
+  // Poll audit logs every 2 seconds
+  useEffect(() => {
+    async function fetchAuditLogs() {
+      try {
+        const res = await fetch('http://localhost:4000/api/opportunities/audit');
+        const data = await res.json();
+        if (data.logs) {
+          setAuditLogs(data.logs);
+          setStats((prev) => ({ ...prev, auditEventsToday: data.logs.length }));
+        }
+      } catch (err) {
+        console.error('Error fetching audit logs:', err);
+      }
+    }
+
+    fetchAuditLogs();
+    const interval = setInterval(fetchAuditLogs, 2000);
+    return () => clearInterval(interval);
+  }, []);
 
   // Nav Items - 5 items matching specification
   const navItems = [
@@ -220,86 +240,141 @@ export function App() {
             </Card>
           </div>
 
-          {/* Opportunity Feed Header */}
-          <div className="flex items-center justify-between mb-16">
-            <h3 className="text-sm font-semibold text-text-primary uppercase tracking-wider">
-              Detected Opportunities ({opportunities.length})
-            </h3>
-          </div>
+          {/* Opportunity Feed / Audit Log Sections */}
+          {activeNav === 'audit' ? (
+            <div className="space-y-16">
+              <div className="flex items-center justify-between">
+                <h3 className="text-sm font-semibold text-text-primary uppercase tracking-wider">
+                  Live Audit Log Stream (Polling every 2s)
+                </h3>
+                <span className="text-xs text-text-muted flex items-center gap-4">
+                  <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span> Polling Active
+                </span>
+              </div>
 
-          {/* Opportunity Feed Cards */}
-          {loading ? (
-            <div className="p-32 flex items-center justify-center text-text-muted gap-8">
-              <Loader2 className="w-5 h-5 animate-spin text-accent" />
-              <span>Analyzing database for revenue patterns...</span>
+              <div className="space-y-8">
+                {auditLogs.length === 0 ? (
+                  <Card className="text-center py-32 text-text-muted text-xs">
+                    No campaign audit events recorded yet. Trigger a campaign from the Opportunities tab to see real-time log transitions.
+                  </Card>
+                ) : (
+                  auditLogs.map((log) => {
+                    let parsedPayload: any = {};
+                    try {
+                      parsedPayload = JSON.parse(log.payload);
+                    } catch {
+                      parsedPayload = { raw: log.payload };
+                    }
+
+                    const isError = log.step.includes('REJECTED') || log.step.includes('FAILED') || log.step.includes('EXHAUSTED');
+                    const isFallback = log.step.includes('FALLBACK');
+                    const badgeVariant = isError ? 'risk' : isFallback ? 'neutral' : 'success';
+
+                    return (
+                      <Card key={log.id} className="p-16 space-y-8">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-12">
+                            <Badge variant={badgeVariant}>{log.step}</Badge>
+                            <span className="text-xs font-mono text-text-muted">
+                              {new Date(log.createdAt).toLocaleTimeString()}
+                            </span>
+                          </div>
+                          <span className="text-xs text-text-muted font-mono">ID: {log.id.slice(0, 8)}</span>
+                        </div>
+
+                        <div className="bg-bg-off p-12 rounded font-mono text-xs text-text-primary overflow-x-auto">
+                          <pre>{JSON.stringify(parsedPayload, null, 2)}</pre>
+                        </div>
+                      </Card>
+                    );
+                  })
+                )}
+              </div>
             </div>
           ) : (
-            <div className="space-y-16">
-              {opportunities.map((opp, idx) => {
-                const oppId = opp.customerId || (opp.productA && opp.productA.id) || `opp-${idx}`;
-                const badgeVariant =
-                  opp.opportunityType === 'winback'
-                    ? 'risk'
-                    : opp.opportunityType === 'upsell'
-                    ? 'success'
-                    : 'neutral';
+            <>
+              {/* Opportunity Feed Header */}
+              <div className="flex items-center justify-between mb-16">
+                <h3 className="text-sm font-semibold text-text-primary uppercase tracking-wider">
+                  Detected Opportunities ({opportunities.length})
+                </h3>
+              </div>
 
-                const rawMetricText =
-                  opp.opportunityType === 'winback'
-                    ? `${opp.daysInactive} days inactive · ${formatINR(opp.pastSpend || 0)} past spend · ${opp.totalTransactions} orders`
-                    : opp.opportunityType === 'cross_sell'
-                    ? `${opp.coPurchaseCount} co-purchases · ${(opp.coPurchaseRate! * 100).toFixed(0)}% co-purchase rate · ${opp.totalEligibleCount} target buyers`
-                    : `${opp.basePurchaseCount} repeat base buys · ${formatINR(opp.totalBaseSpend || 0)} spend · +${formatINR(opp.priceDelta || 0)} upgrade delta`;
+              {/* Opportunity Feed Cards */}
+              {loading ? (
+                <div className="p-32 flex items-center justify-center text-text-muted gap-8">
+                  <Loader2 className="w-5 h-5 animate-spin text-accent" />
+                  <span>Analyzing database for revenue patterns...</span>
+                </div>
+              ) : (
+                <div className="space-y-16">
+                  {opportunities.map((opp, idx) => {
+                    const oppId = opp.customerId || (opp.productA && opp.productA.id) || `opp-${idx}`;
+                    const badgeVariant =
+                      opp.opportunityType === 'winback'
+                        ? 'risk'
+                        : opp.opportunityType === 'upsell'
+                        ? 'success'
+                        : 'neutral';
 
-                return (
-                  <Card key={oppId} className="flex flex-col md:flex-row md:items-center justify-between gap-16">
-                    <div className="flex-1 space-y-8">
-                      <div className="flex items-center gap-12">
-                        <Badge variant={badgeVariant}>
-                          {opp.opportunityType.replace('_', '-').toUpperCase()}
-                        </Badge>
-                        <span className="text-xs font-semibold text-text-primary">
-                          Estimated Impact: +{formatINR(opp.estimatedImpact)}
-                        </span>
-                        <span className="text-xs text-text-muted">Confidence: {(opp.confidence * 100).toFixed(0)}%</span>
-                      </div>
+                    const rawMetricText =
+                      opp.opportunityType === 'winback'
+                        ? `${opp.daysInactive} days inactive · ${formatINR(opp.pastSpend || 0)} past spend · ${opp.totalTransactions} orders`
+                        : opp.opportunityType === 'cross_sell'
+                        ? `${opp.coPurchaseCount} co-purchases · ${(opp.coPurchaseRate! * 100).toFixed(0)}% co-purchase rate · ${opp.totalEligibleCount} target buyers`
+                        : `${opp.basePurchaseCount} repeat base buys · ${formatINR(opp.totalBaseSpend || 0)} spend · +${formatINR(opp.priceDelta || 0)} upgrade delta`;
 
-                      {/* Explanation Sentence */}
-                      <p className="text-xs text-text-primary font-normal leading-relaxed">
-                        {opp.explanation ? (
-                          opp.explanation
-                        ) : (
-                          <span className="text-text-muted flex items-center gap-8">
-                            <Loader2 className="w-3 h-3 animate-spin" /> Generating grounded Gemini narrative...
-                          </span>
-                        )}
-                      </p>
+                    return (
+                      <Card key={oppId} className="flex flex-col md:flex-row md:items-center justify-between gap-16">
+                        <div className="flex-1 space-y-8">
+                          <div className="flex items-center gap-12">
+                            <Badge variant={badgeVariant}>
+                              {opp.opportunityType.replace('_', '-').toUpperCase()}
+                            </Badge>
+                            <span className="text-xs font-semibold text-text-primary">
+                              Estimated Impact: +{formatINR(opp.estimatedImpact)}
+                            </span>
+                            <span className="text-xs text-text-muted">Confidence: {(opp.confidence * 100).toFixed(0)}%</span>
+                          </div>
 
-                      {/* Raw Supporting Metric */}
-                      <div className="text-xs text-text-muted font-mono bg-bg-off px-8 py-4 rounded inline-block">
-                        {rawMetricText}
-                      </div>
-                    </div>
+                          {/* Explanation Sentence */}
+                          <p className="text-xs text-text-primary font-normal leading-relaxed">
+                            {opp.explanation ? (
+                              opp.explanation
+                            ) : (
+                              <span className="text-text-muted flex items-center gap-8">
+                                <Loader2 className="w-3 h-3 animate-spin" /> Generating grounded Gemini narrative...
+                              </span>
+                            )}
+                          </p>
 
-                    {/* Action Buttons */}
-                    <div className="flex items-center gap-12 self-end md:self-center">
-                      <button
-                        onClick={() => handleRejectClick(oppId)}
-                        className="px-16 py-8 rounded border border-border text-xs font-medium text-text-muted hover:bg-bg-off hover:text-text-primary transition-colors flex items-center gap-4"
-                      >
-                        <XCircle className="w-4 h-4" /> Reject
-                      </button>
-                      <button
-                        onClick={() => handleApproveClick(opp)}
-                        className="px-16 py-8 rounded bg-accent hover:bg-accent-hover text-white text-xs font-medium transition-colors flex items-center gap-4"
-                      >
-                        <CheckCircle className="w-4 h-4" /> Approve
-                      </button>
-                    </div>
-                  </Card>
-                );
-              })}
-            </div>
+                          {/* Raw Supporting Metric */}
+                          <div className="text-xs text-text-muted font-mono bg-bg-off px-8 py-4 rounded inline-block">
+                            {rawMetricText}
+                          </div>
+                        </div>
+
+                        {/* Action Buttons */}
+                        <div className="flex items-center gap-12 self-end md:self-center">
+                          <button
+                            onClick={() => handleRejectClick(oppId)}
+                            className="px-16 py-8 rounded border border-border text-xs font-medium text-text-muted hover:bg-bg-off hover:text-text-primary transition-colors flex items-center gap-4"
+                          >
+                            <XCircle className="w-4 h-4" /> Reject
+                          </button>
+                          <button
+                            onClick={() => handleApproveClick(opp)}
+                            className="px-16 py-8 rounded bg-accent hover:bg-accent-hover text-white text-xs font-medium transition-colors flex items-center gap-4"
+                          >
+                            <CheckCircle className="w-4 h-4" /> Approve
+                          </button>
+                        </div>
+                      </Card>
+                    );
+                  })}
+                </div>
+              )}
+            </>
           )}
         </main>
       </div>
