@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import { opportunitiesRouter } from './routes/opportunities';
+import { checkoutRouter } from './routes/checkout';
 
 dotenv.config();
 
@@ -12,6 +13,7 @@ app.use(cors());
 app.use(express.json());
 
 app.use('/api/opportunities', opportunitiesRouter);
+app.use('/api', checkoutRouter);
 
 app.get('/health', (_req, res) => {
   res.json({ status: 'ok', service: 'RevGrowth Backend Analytics' });
