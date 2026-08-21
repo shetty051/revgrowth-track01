@@ -1,13 +1,104 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Get a free hosted Postgres database in seconds: `npx create-db`
-
 generator client {
-  provider = "prisma-client"
-  output   = "../generated/prisma"
+  provider = "prisma-client-js"
 }
 
 datasource db {
   provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+model Merchant {
+  id       String @id @default(uuid())
+  name     String
+  category String
+}
+
+model Customer {
+  id             String        @id @default(uuid())
+  name           String
+  email          String        @unique
+  phone          String?
+  createdAt      DateTime      @default(now())
+  lastPurchaseAt DateTime?
+  transactions   Transaction[]
+}
+
+model Product {
+  id           String        @id @default(uuid())
+  name         String
+  category     String
+  price        Float
+  marginPct    Float
+  stock        Int
+  variants     String        // Stored as JSON string
+  transactions Transaction[]
+}
+
+model Transaction {
+  id         String   @id @default(uuid())
+  customerId String
+  productId  String
+  quantity   Int
+  amount     Float
+  channel    String
+  createdAt  DateTime @default(now())
+
+  customer Customer @relation(fields: [customerId], references: [id])
+  product  Product  @relation(fields: [productId], references: [id])
+}
+
+model CoPurchasePair {
+  id        String @id @default(uuid())
+  productAId String
+  productBId String
+  count      Int
+
+  @@unique([productAId, productBId])
+}
+
+model Campaign {
+  id           String        @id @default(uuid())
+  type         String        // upsell | cross_sell | winback
+  status       String        // active | completed | paused
+  audienceSize Int
+  offerPct     Float
+  spendCap     Float
+  startedAt    DateTime      @default(now())
+  endedAt      DateTime?
+  result       String?       // Stored as JSON string
+  logs         CampaignLog[]
+}
+
+model CampaignLog {
+  id         String   @id @default(uuid())
+  campaignId String
+  step       String
+  payload    String   // Stored as JSON string
+  createdAt  DateTime @default(now())
+
+  campaign Campaign @relation(fields: [campaignId], references: [id])
+}
+
+model AiBuyerTransaction {
+  id              String   @id @default(uuid())
+  mandateId       String
+  productId       String
+  quantity        Int
+  requestedAmount Float
+  approvedAmount  Float
+  status          String   // approved | blocked
+  reason          String?
+  createdAt       DateTime @default(now())
+
+  mandate Mandate @relation(fields: [mandateId], references: [id])
+}
+
+model Mandate {
+  id                  String               @id @default(uuid())
+  buyerAgentId        String
+  maxSpend            Float
+  expiresAt           DateTime
+  signature           String
+  createdAt           DateTime             @default(now())
+  aiBuyerTransactions AiBuyerTransaction[]
 }
