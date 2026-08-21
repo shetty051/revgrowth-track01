@@ -9,6 +9,9 @@ import {
   CheckCircle,
   XCircle,
   Loader2,
+  Mic,
+  MicOff,
+  Volume2,
 } from 'lucide-react';
 import { Card, StatNumber, Sidebar, Badge, SectionHeader } from './components/ui/primitives';
 import { formatINR } from './utils/formatters';
@@ -57,6 +60,177 @@ export function App() {
   const [confirming, setConfirming] = useState(false);
   const [confirmedSuccess, setConfirmedSuccess] = useState(false);
 
+  // Voice Interaction State
+  const [isListening, setIsListening] = useState(false);
+  const [voiceText, setVoiceText] = useState('');
+  const [voiceResponse, setVoiceResponse] = useState<string | null>(null);
+  const [voiceProcessing, setVoiceProcessing] = useState(false);
+
+  // Nav Items - 5 items matching specification
+  const navItems = [
+    { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, active: activeNav === 'dashboard', onClick: () => setActiveNav('dashboard') },
+    { id: 'opportunities', label: 'Opportunities', icon: Sparkles, active: activeNav === 'opportunities', onClick: () => setActiveNav('opportunities') },
+    { id: 'campaigns', label: 'Campaigns', icon: Megaphone, active: activeNav === 'campaigns', onClick: () => setActiveNav('campaigns') },
+    { id: 'checkout', label: 'Checkout Layer', icon: ShoppingCart, active: activeNav === 'checkout', onClick: () => setActiveNav('checkout') },
+    { id: 'audit', label: 'Audit Log', icon: FileText, active: activeNav === 'audit', onClick: () => setActiveNav('audit') },
+  ];
+
+  // Check mic permissions on load & log status
+  useEffect(() => {
+    if (navigator.permissions && navigator.permissions.query) {
+      navigator.permissions.query({ name: 'microphone' as any })
+        .then((permissionStatus) => {
+          console.log('[MIC PERMISSION STATUS ON LOAD]:', permissionStatus.state);
+          permissionStatus.onchange = () => {
+            console.log('[MIC PERMISSION CHANGED]:', permissionStatus.state);
+          };
+        })
+        .catch((err) => {
+          console.warn('[MIC PERMISSION QUERY ERROR]:', err);
+        });
+    }
+  }, []);
+
+  // Speech Recognition setup with explicit settings & detailed logging
+  const handleMicToggle = () => {
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+
+    if (!SpeechRecognition) {
+      console.error('[SPEECH RECOGNITION]: webkitSpeechRecognition is NOT supported in this browser environment.');
+      alert('Browser SpeechRecognition not available in this environment. Try typing command.');
+      const manualInput = prompt('Enter voice command (e.g. "configure allow AI agents to buy anything under ₹5,000" or "analyze churn"):');
+      if (manualInput) sendVoiceCommandToBackend(manualInput);
+      return;
+    }
+
+    if (isListening) {
+      console.log('[SPEECH RECOGNITION]: User toggled off mic manually.');
+      setIsListening(false);
+      return;
+    }
+
+    try {
+      const recognition = new SpeechRecognition();
+      recognition.continuous = false;
+      recognition.interimResults = true; // Show live interim text as user speaks
+      recognition.lang = navigator.language || 'en-US'; // Use browser's active locale
+
+      console.log('[SPEECH RECOGNITION CONFIG]:', {
+        continuous: recognition.continuous,
+        interimResults: recognition.interimResults,
+        lang: recognition.lang,
+      });
+
+      // Extended 15-second safety timeout so users can finish full sentences
+      const safetyTimeout = setTimeout(() => {
+        console.warn('[SPEECH RECOGNITION TIMEOUT]: 15s safety timeout reached. Resetting UI state.');
+        try {
+          recognition.stop();
+        } catch (e) {
+          console.warn('Error stopping recognition on timeout:', e);
+        }
+        setIsListening(false);
+      }, 15000);
+
+      recognition.onaudiostart = () => {
+        console.log('[SPEECH RECOGNITION EVENT]: onaudiostart - Microphone audio capture active.');
+      };
+
+      recognition.onstart = () => {
+        console.log('[SPEECH RECOGNITION EVENT]: onstart - Recognition engine active.');
+        setIsListening(true);
+        setVoiceText('Listening... Speak now!');
+      };
+
+      recognition.onnomatch = (event: any) => {
+        console.warn('[SPEECH RECOGNITION EVENT]: onnomatch - Low confidence speech match:', event);
+      };
+
+      recognition.onresult = (event: any) => {
+        clearTimeout(safetyTimeout);
+        let interimTranscript = '';
+        let finalTranscript = '';
+
+        for (let i = event.resultIndex; i < event.results.length; ++i) {
+          if (event.results[i].isFinal) {
+            finalTranscript += event.results[0][0].transcript;
+          } else {
+            interimTranscript += event.results[i][0].transcript;
+          }
+        }
+
+        const textToDisplay = finalTranscript || interimTranscript;
+        console.log('[SPEECH RECOGNITION EVENT]: onresult interim/final text:', textToDisplay);
+        setVoiceText(textToDisplay);
+
+        if (finalTranscript) {
+          console.log(`[FINAL TRANSCRIBED TEXT]: "${finalTranscript}"`);
+          setIsListening(false);
+          sendVoiceCommandToBackend(finalTranscript);
+        }
+      };
+
+      recognition.onerror = (event: any) => {
+        clearTimeout(safetyTimeout);
+        console.error('[SPEECH RECOGNITION EVENT]: onerror fired!', event.error, event);
+        setIsListening(false);
+        if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
+          setVoiceText('Mic permission denied. Please allow microphone access in Chrome site settings.');
+        } else if (event.error === 'no-speech') {
+          setVoiceText('No speech detected. Please click the mic and speak clearly.');
+        } else {
+          setVoiceText(`Mic error: ${event.error}. Try again.`);
+        }
+      };
+
+      recognition.onend = () => {
+        clearTimeout(safetyTimeout);
+        console.log('[SPEECH RECOGNITION EVENT]: onend - Recognition engine stopped.');
+        setIsListening(false);
+      };
+
+      console.log('[SPEECH RECOGNITION]: Calling recognition.start()...');
+      recognition.start();
+    } catch (err: any) {
+      console.error('[SPEECH RECOGNITION START ERROR]: Thrown during start():', err);
+      setIsListening(false);
+    }
+  };
+
+  const sendVoiceCommandToBackend = async (transcription: string) => {
+    setVoiceProcessing(true);
+    console.log('Sending voice transcription to backend POST /api/voice/command:', transcription);
+    try {
+      const res = await fetch('http://localhost:4000/api/voice/command', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ transcription }),
+      });
+      const data = await res.json();
+      console.log('Gemini voice response received from backend:', data);
+      setVoiceResponse(data.spokenResponse);
+
+      // Speak response back using SpeechSynthesis
+      if ('speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+        const utterance = new SpeechSynthesisUtterance(data.spokenResponse);
+        utterance.rate = 1.0;
+        window.speechSynthesis.speak(utterance);
+      }
+
+      // Handle specific intent actions
+      if (data.actionDetails?.type === 'PROPOSE_EXECUTION_CONFIRMATION') {
+        if (opportunities.length > 0) {
+          handleApproveClick(opportunities[0]);
+        }
+      }
+    } catch (err) {
+      console.error('Error sending voice command to backend:', err);
+    } finally {
+      setVoiceProcessing(false);
+    }
+  };
+
   // Poll audit logs every 2 seconds
   useEffect(() => {
     async function fetchAuditLogs() {
@@ -76,15 +250,6 @@ export function App() {
     const interval = setInterval(fetchAuditLogs, 2000);
     return () => clearInterval(interval);
   }, []);
-
-  // Nav Items - 5 items matching specification
-  const navItems = [
-    { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, active: activeNav === 'dashboard', onClick: () => setActiveNav('dashboard') },
-    { id: 'opportunities', label: 'Opportunities', icon: Sparkles, active: activeNav === 'opportunities', onClick: () => setActiveNav('opportunities') },
-    { id: 'campaigns', label: 'Campaigns', icon: Megaphone, active: activeNav === 'campaigns', onClick: () => setActiveNav('campaigns') },
-    { id: 'checkout', label: 'Checkout Layer', icon: ShoppingCart, active: activeNav === 'checkout', onClick: () => setActiveNav('checkout') },
-    { id: 'audit', label: 'Audit Log', icon: FileText, active: activeNav === 'audit', onClick: () => setActiveNav('audit') },
-  ];
 
   // Fetch opportunities on load
   useEffect(() => {
@@ -187,20 +352,47 @@ export function App() {
 
       <div className="flex-1 flex flex-col min-w-0">
         {/* Header */}
-        <header className="h-16 bg-bg-base border-b border-border px-32 flex items-center justify-between">
-          <div className="flex items-center gap-16">
-            <span className="text-sm font-semibold text-text-primary">RevGrowth Store (INR Merchant)</span>
-            <span className="text-xs text-text-muted">Razorpay Integrated · Last synced: Just now</span>
+        <header className="h-16 bg-bg-base border-b border-border px-16 sm:px-32 flex items-center justify-between gap-16 min-w-0">
+          <div className="flex items-center gap-12 min-w-0 overflow-hidden">
+            <span className="text-sm font-semibold text-text-primary truncate">RevGrowth Store (INR Merchant)</span>
+            <span className="text-xs text-text-muted hidden md:inline truncate border-l border-border pl-12">
+              Razorpay Integrated · Last synced: Just now
+            </span>
           </div>
-          <div className="flex items-center gap-16 text-text-muted">
-            <button title="Search" className="p-8 rounded hover:bg-bg-off">
+
+          <div className="flex items-center gap-12 shrink-0">
+            <button title="Search" className="p-8 rounded hover:bg-bg-off text-text-muted">
               <Search className="w-4 h-4" />
             </button>
+
+            {/* Merchant User Avatar */}
+            <div className="w-8 h-8 rounded-full bg-accent/10 border border-accent/20 flex items-center justify-center text-accent font-semibold text-xs shrink-0">
+              JS
+            </div>
           </div>
         </header>
 
         {/* Main Workspace */}
         <main className="flex-1 p-32 max-w-7xl w-full mx-auto">
+          {/* Voice Response Banner */}
+          {(voiceText || voiceResponse) && (
+            <Card className="mb-24 bg-accent/5 border-accent/20 flex items-start gap-12 p-16">
+              <Volume2 className="w-5 h-5 text-accent shrink-0 mt-2" />
+              <div className="space-y-4 flex-1">
+                {voiceText && (
+                  <p className="text-xs text-text-muted">
+                    <span className="font-semibold text-text-primary">Voice Input:</span> "{voiceText}"
+                  </p>
+                )}
+                {voiceResponse && (
+                  <p className="text-xs font-medium text-text-primary leading-relaxed">
+                    <span className="font-semibold text-accent">Voice Response:</span> {voiceResponse}
+                  </p>
+                )}
+              </div>
+            </Card>
+          )}
+
           <SectionHeader
             title="Revenue Expansion Dashboard"
             subtitle="Automated win-back, cross-sell, and upsell detection powered by grounded financial analytics in INR."
@@ -464,6 +656,46 @@ export function App() {
           </div>
         </div>
       )}
+
+      {/* Floating Action Button (FAB) for Voice Interaction in Bottom-Right Corner */}
+      <div className="fixed bottom-24 right-24 z-50 flex items-center gap-12">
+        {/* Waveform status tooltip when listening/processing */}
+        {(isListening || voiceProcessing) && (
+          <div className="bg-bg-base border border-border px-16 py-8 rounded-full shadow-lg flex items-center gap-8 animate-in fade-in slide-in-from-right-4">
+            <div className="flex items-center gap-1.5 h-4">
+              <span className="w-1 h-4 rounded-full bg-accent animate-bounce"></span>
+              <span className="w-1 h-5 rounded-full bg-accent animate-bounce delay-75"></span>
+              <span className="w-1 h-3 rounded-full bg-accent animate-bounce delay-150"></span>
+            </div>
+            <span className="text-xs font-medium text-text-primary">
+              {isListening ? 'Listening...' : 'Parsing Voice AI...'}
+            </span>
+          </div>
+        )}
+
+        <button
+          onClick={handleMicToggle}
+          type="button"
+          aria-label={isListening ? 'Stop Voice Input' : 'Start Voice Input'}
+          title={isListening ? 'Stop Listening' : 'Click to Speak Voice Command'}
+          className={`relative p-16 rounded-full shadow-xl transition-all duration-200 flex items-center justify-center cursor-pointer ${
+            isListening
+              ? 'bg-red-500 text-white scale-110'
+              : 'bg-accent hover:bg-accent-hover text-white hover:scale-105'
+          }`}
+        >
+          {/* Subtle Pulse Ring Animation when actively listening */}
+          {isListening && (
+            <span className="absolute inset-0 rounded-full bg-red-500 opacity-75 animate-ping" />
+          )}
+
+          {isListening ? (
+            <MicOff className="w-6 h-6 relative z-10" />
+          ) : (
+            <Mic className="w-6 h-6 relative z-10" />
+          )}
+        </button>
+      </div>
     </div>
   );
 }

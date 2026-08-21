@@ -89,19 +89,62 @@ export interface SidebarItem {
 export interface SidebarProps {
   items: SidebarItem[];
   className?: string;
+  isExpanded?: boolean;
+  onToggleExpand?: () => void;
 }
 
-export const Sidebar: React.FC<SidebarProps> = ({ items, className = '' }) => {
+export const Sidebar: React.FC<SidebarProps> = ({
+  items,
+  className = '',
+  isExpanded: controlledExpanded,
+  onToggleExpand,
+}) => {
+  const [internalExpanded, setInternalExpanded] = React.useState(false);
+  const expanded = controlledExpanded !== undefined ? controlledExpanded : internalExpanded;
+
+  const handleToggle = () => {
+    if (onToggleExpand) {
+      onToggleExpand();
+    } else {
+      setInternalExpanded(!internalExpanded);
+    }
+  };
+
   const displayItems = items.slice(0, 6);
 
   return (
     <aside
-      className={`w-16 bg-bg-base border-r border-border min-h-screen flex flex-col items-center py-24 gap-16 select-none ${className}`}
+      className={`${
+        expanded ? 'w-56 px-16' : 'w-16 px-12'
+      } bg-bg-base border-r border-border min-h-screen flex flex-col py-16 transition-all duration-200 ease-in-out select-none shrink-0 z-20 ${className}`}
     >
-      <div className="w-8 h-8 rounded bg-accent flex items-center justify-center text-white font-bold text-sm mb-16">
-        RG
+      {/* Top Header: Logo + Menu Toggle */}
+      <div className="flex items-center justify-between mb-24 w-full px-4">
+        <div className="flex items-center gap-12 overflow-hidden">
+          <div className="w-8 h-8 rounded bg-accent flex items-center justify-center text-white font-bold text-xs shrink-0">
+            RG
+          </div>
+          {expanded && (
+            <span className="text-sm font-semibold text-text-primary truncate transition-opacity duration-200">
+              RevGrowth
+            </span>
+          )}
+        </div>
+        <button
+          onClick={handleToggle}
+          type="button"
+          aria-label={expanded ? 'Collapse Sidebar' : 'Expand Sidebar'}
+          title={expanded ? 'Collapse Sidebar' : 'Expand Sidebar'}
+          className="p-6 rounded text-text-muted hover:bg-bg-off hover:text-text-primary transition-colors cursor-pointer shrink-0"
+        >
+          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+          </svg>
+        </button>
       </div>
-      <nav className="flex flex-col gap-8 w-full items-center">
+
+      {/* Nav Items */}
+      <nav className="flex flex-col gap-8 w-full">
         {displayItems.map((item) => {
           const Icon = item.icon;
           return (
@@ -109,13 +152,18 @@ export const Sidebar: React.FC<SidebarProps> = ({ items, className = '' }) => {
               key={item.id}
               onClick={item.onClick}
               title={item.label}
-              className={`w-10 h-10 rounded-lg flex items-center justify-center transition-colors ${
+              type="button"
+              className={`w-full h-10 rounded-lg flex items-center gap-12 px-10 transition-colors relative cursor-pointer ${
                 item.active
-                  ? 'bg-accent text-white'
+                  ? 'bg-accent text-white font-medium'
                   : 'text-text-muted hover:bg-bg-off hover:text-text-primary'
               }`}
             >
-              <Icon className="w-5 h-5" />
+              <Icon className="w-5 h-5 shrink-0" />
+              {expanded && <span className="text-sm truncate">{item.label}</span>}
+              {item.active && !expanded && (
+                <span className="absolute left-0 top-2 bottom-2 w-1 bg-accent rounded-r" />
+              )}
             </button>
           );
         })}

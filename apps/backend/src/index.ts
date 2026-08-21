@@ -3,6 +3,7 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import { opportunitiesRouter } from './routes/opportunities';
 import { checkoutRouter } from './routes/checkout';
+import { voiceRouter } from './routes/voice';
 
 dotenv.config();
 
@@ -13,6 +14,7 @@ app.use(cors());
 app.use(express.json());
 
 app.use('/api/opportunities', opportunitiesRouter);
+app.use('/api/voice', voiceRouter);
 app.use('/api', checkoutRouter);
 
 app.get('/health', (_req, res) => {
