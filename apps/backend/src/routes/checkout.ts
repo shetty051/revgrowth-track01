@@ -69,3 +69,45 @@ checkoutRouter.post('/checkout/assemble', (req, res) => {
     res.status(400).json({ error: error.message || 'Failed to assemble final order' });
   }
 });
+
+// POST /mandates — Issue signed JWT mandate
+checkoutRouter.post('/mandates', async (req, res) => {
+  try {
+    const { buyerAgentId, maxSpendINR, merchantId, expiresAt } = req.body;
+    const { createSignedMandate } = await import('../services/mandate');
+
+    const result = await createSignedMandate({
+      buyerAgentId: buyerAgentId || `agent_${Date.now()}`,
+      maxSpendINR: Number(maxSpendINR || 15000),
+      merchantId: merchantId || 'mch_default',
+      expiresAt: expiresAt || new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+    });
+
+    res.json({ success: true, mandate: result });
+  } catch (error: any) {
+    console.error('Error creating mandate:', error);
+    res.status(500).json({ error: 'Failed to issue signed mandate', details: error.message });
+  }
+});
+
+// POST /api/checkout/execute — Verify mandate signature, validate spend limit, execute Razorpay order
+checkoutRouter.post('/checkout/execute', async (req, res) => {
+  try {
+    const { mandateToken, assembledOrder } = req.body;
+    if (!mandateToken || !assembledOrder) {
+      return res.status(400).json({ error: 'mandateToken and assembledOrder are required' });
+    }
+
+    const { executeAgenticPurchase } = await import('../services/mandate');
+    const result = await executeAgenticPurchase({ mandateToken, assembledOrder });
+
+    if (!result.success) {
+      return res.status(400).json(result);
+    }
+
+    res.json(result);
+  } catch (error) {
+    console.error('Error executing purchase:', error);
+    res.status(500).json({ error: 'Failed to execute agentic purchase' });
+  }
+});
