@@ -1,0 +1,50 @@
+@import "tailwindcss";
+
+@theme {
+  --color-bg-base: #FFFFFF;
+  --color-bg-off: #F7F8FA;
+
+  --color-text-primary: #0E1116;
+  --color-text-muted: #68737D;
+
+  --color-accent: #3B5BFF;
+  --color-accent-hover: #2A4AEB;
+
+  --color-border: #EEF0F3;
+  --color-border-dark: #E2E5EA;
+
+  --color-badge-risk-bg: #FFF2F2;
+  --color-badge-riskBg: #FFF2F2;
+  --color-badge-risk-text: #DC2626;
+  --color-badge-riskText: #DC2626;
+  --color-badge-success-bg: #F0FDF4;
+  --color-badge-successBg: #F0FDF4;
+  --color-badge-success-text: #16A34A;
+  --color-badge-successText: #16A34A;
+  --color-badge-neutral-bg: #F3F4F6;
+  --color-badge-neutralBg: #F3F4F6;
+  --color-badge-neutral-text: #4B5563;
+  --color-badge-neutralText: #4B5563;
+
+  --spacing-4: 4px;
+  --spacing-8: 8px;
+  --spacing-12: 12px;
+  --spacing-16: 16px;
+  --spacing-24: 24px;
+  --spacing-32: 32px;
+
+  --radius-card: 12px;
+  --shadow-card-hover: 0 4px 12px rgba(14, 17, 22, 0.05);
+
+  --font-sans: Inter, system-ui, -apple-system, sans-serif;
+  --tracking-tightest: -0.035em;
+  --tracking-tight: -0.02em;
+}
+
+body {
+  margin: 0;
+  background-color: var(--color-bg-off);
+  color: var(--color-text-primary);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}

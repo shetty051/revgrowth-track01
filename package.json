@@ -1,0 +1,21 @@
+{
+  "name": "revgrowth",
+  "version": "1.0.0",
+  "description": "RevGrowth is a financial and growth performance platform designed to solve the **Two-Half Problem**.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/shetty051/revgrowth-track01.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/shetty051/revgrowth-track01/issues"
+  },
+  "homepage": "https://github.com/shetty051/revgrowth-track01#readme"
+}
