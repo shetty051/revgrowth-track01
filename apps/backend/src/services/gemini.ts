@@ -58,8 +58,9 @@ export async function generateOpportunityExplanation(opportunityId: string) {
       tools: [{ functionDeclarations: [getOpportunityDataTool] }],
     });
 
-    const systemPrompt = `You are a financial revenue analyst for RevGrowth.
+    const systemPrompt = `You are a financial revenue analyst for RevGrowth (operating on Razorpay in INR).
 CRITICAL CONSTRAINT: You may only state numbers that appear in the tool result. Never estimate, round creatively, or invent a statistic that isn't in the data. If the data is insufficient to make a claim, say so.
+When stating monetary values, format them using Indian Rupees (₹ or INR).
 
 Your response MUST be exactly 2-3 sentences:
 1. State the detected pattern using exact customer/product names and raw data numbers.
@@ -102,11 +103,11 @@ Your response MUST be exactly 2-3 sentences:
 function formatGroundedFallbackExplanation(rawData: any) {
   let explanation = '';
   if (rawData.opportunityType === 'winback') {
-    explanation = `${rawData.customerName} has been inactive for ${rawData.daysInactive} days with $${rawData.pastSpend} in historical spend across ${rawData.totalTransactions} transactions. Engaging them yields an expected upside of $${rawData.estimatedImpact} in recovered revenue. Downside risk: campaign spend will be lost if customer engagement fails to convert.`;
+    explanation = `${rawData.customerName} has been inactive for ${rawData.daysInactive} days with ₹${rawData.pastSpend} in historical spend across ${rawData.totalTransactions} transactions. Engaging them yields an expected upside of ₹${rawData.estimatedImpact} in recovered revenue. Downside risk: campaign spend will be lost if customer engagement fails to convert.`;
   } else if (rawData.opportunityType === 'cross_sell') {
-    explanation = `${rawData.productA.name} and ${rawData.productB.name} have a co-purchase count of ${rawData.coPurchaseCount} with a co-purchase rate of ${rawData.coPurchaseRate * 100}%. Targeting ${rawData.totalEligibleCount} eligible customers has an expected upside of $${rawData.estimatedImpact}. Downside risk: over-promoting secondary hardware may erode core brand focus if conversion drops.`;
+    explanation = `${rawData.productA.name} and ${rawData.productB.name} have a co-purchase count of ${rawData.coPurchaseCount} with a co-purchase rate of ${rawData.coPurchaseRate * 100}%. Targeting ${rawData.totalEligibleCount} eligible customers has an expected upside of ₹${rawData.estimatedImpact}. Downside risk: over-promoting secondary hardware may erode core brand focus if conversion drops.`;
   } else {
-    explanation = `${rawData.customerName} purchased ${rawData.baseProduct.name} ${rawData.basePurchaseCount} times with total base spend of $${rawData.totalBaseSpend}. Upgrading to ${rawData.premiumProduct.name} yields an expected upside of $${rawData.estimatedImpact} with a price delta of $${rawData.priceDelta}. Downside risk: aggressive upsell messaging might trigger churn on existing tier subscriptions.`;
+    explanation = `${rawData.customerName} purchased ${rawData.baseProduct.name} ${rawData.basePurchaseCount} times with total base spend of ₹${rawData.totalBaseSpend}. Upgrading to ${rawData.premiumProduct.name} yields an expected upside of ₹${rawData.estimatedImpact} with a price delta of ₹${rawData.priceDelta}. Downside risk: aggressive upsell messaging might trigger churn on existing tier subscriptions.`;
   }
 
   return {

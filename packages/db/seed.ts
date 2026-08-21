@@ -27,30 +27,30 @@ async function main() {
 
   const productsData = [
     // SaaS Subscriptions (includes base tier + premium tier for upsell pattern)
-    { name: 'Growth Analytics Starter Plan', category: 'SaaS Subscriptions', price: 49.0, marginPct: 0.85, stock: 999, variants: JSON.stringify({ tier: 'starter' }) },
-    { name: 'Growth Analytics Enterprise Plan', category: 'SaaS Subscriptions', price: 299.0, marginPct: 0.90, stock: 999, variants: JSON.stringify({ tier: 'enterprise' }) },
-    { name: 'Email Campaign Basic', category: 'SaaS Subscriptions', price: 29.0, marginPct: 0.80, stock: 999, variants: JSON.stringify({ tier: 'starter' }) },
-    { name: 'Email Campaign Pro', category: 'SaaS Subscriptions', price: 149.0, marginPct: 0.88, stock: 999, variants: JSON.stringify({ tier: 'pro' }) },
-    { name: 'Churn Guard Standard', category: 'SaaS Subscriptions', price: 79.0, marginPct: 0.82, stock: 999, variants: JSON.stringify({ tier: 'starter' }) },
-    { name: 'Churn Guard Suite Pro', category: 'SaaS Subscriptions', price: 349.0, marginPct: 0.92, stock: 999, variants: JSON.stringify({ tier: 'enterprise' }) },
+    { name: 'Growth Analytics Starter Plan', category: 'SaaS Subscriptions', price: 3999, marginPct: 0.85, stock: 999, variants: JSON.stringify({ tier: 'starter' }) },
+    { name: 'Growth Analytics Enterprise Plan', category: 'SaaS Subscriptions', price: 24999, marginPct: 0.90, stock: 999, variants: JSON.stringify({ tier: 'enterprise' }) },
+    { name: 'Email Campaign Basic', category: 'SaaS Subscriptions', price: 2499, marginPct: 0.80, stock: 999, variants: JSON.stringify({ tier: 'starter' }) },
+    { name: 'Email Campaign Pro', category: 'SaaS Subscriptions', price: 11999, marginPct: 0.88, stock: 999, variants: JSON.stringify({ tier: 'pro' }) },
+    { name: 'Churn Guard Standard', category: 'SaaS Subscriptions', price: 5999, marginPct: 0.82, stock: 999, variants: JSON.stringify({ tier: 'starter' }) },
+    { name: 'Churn Guard Suite Pro', category: 'SaaS Subscriptions', price: 29999, marginPct: 0.92, stock: 999, variants: JSON.stringify({ tier: 'enterprise' }) },
 
     // Analytics Tools (includes cross-sell pair items)
-    { name: 'RevGrowth Core SDK', category: 'Analytics Tools', price: 99.0, marginPct: 0.85, stock: 500, variants: JSON.stringify({ v: '2.0' }) },
-    { name: 'RevGrowth AI Attribution Plugin', category: 'Analytics Tools', price: 199.0, marginPct: 0.88, stock: 500, variants: JSON.stringify({ v: '1.5' }) },
-    { name: 'Real-time Funnel Monitor', category: 'Analytics Tools', price: 129.0, marginPct: 0.84, stock: 500, variants: JSON.stringify({ v: '3.0' }) },
-    { name: 'Cohort Heatmap Engine', category: 'Analytics Tools', price: 159.0, marginPct: 0.86, stock: 500, variants: JSON.stringify({ v: '1.2' }) },
+    { name: 'RevGrowth Core SDK', category: 'Analytics Tools', price: 7999, marginPct: 0.85, stock: 500, variants: JSON.stringify({ v: '2.0' }) },
+    { name: 'RevGrowth AI Attribution Plugin', category: 'Analytics Tools', price: 15999, marginPct: 0.88, stock: 500, variants: JSON.stringify({ v: '1.5' }) },
+    { name: 'Real-time Funnel Monitor', category: 'Analytics Tools', price: 9999, marginPct: 0.84, stock: 500, variants: JSON.stringify({ v: '3.0' }) },
+    { name: 'Cohort Heatmap Engine', category: 'Analytics Tools', price: 12999, marginPct: 0.86, stock: 500, variants: JSON.stringify({ v: '1.2' }) },
 
     // Marketing Hardware (includes cross-sell pairs)
-    { name: 'POS Smart Terminal Node', category: 'Marketing Hardware', price: 399.0, marginPct: 0.45, stock: 150, variants: JSON.stringify({ color: 'black' }) },
-    { name: 'Thermal Receipt Printer HD', category: 'Marketing Hardware', price: 149.0, marginPct: 0.40, stock: 200, variants: JSON.stringify({ model: 'TH-200' }) },
-    { name: 'NFC Customer Badge Scanner', category: 'Marketing Hardware', price: 89.0, marginPct: 0.50, stock: 300, variants: JSON.stringify({ wireless: true }) },
-    { name: 'Retail Beacon Sensor Pack', category: 'Marketing Hardware', price: 249.0, marginPct: 0.55, stock: 100, variants: JSON.stringify({ pack: 5 }) },
+    { name: 'POS Smart Terminal Node', category: 'Marketing Hardware', price: 31999, marginPct: 0.45, stock: 150, variants: JSON.stringify({ color: 'black' }) },
+    { name: 'Thermal Receipt Printer HD', category: 'Marketing Hardware', price: 11999, marginPct: 0.40, stock: 200, variants: JSON.stringify({ model: 'TH-200' }) },
+    { name: 'NFC Customer Badge Scanner', category: 'Marketing Hardware', price: 6999, marginPct: 0.50, stock: 300, variants: JSON.stringify({ wireless: true }) },
+    { name: 'Retail Beacon Sensor Pack', category: 'Marketing Hardware', price: 19999, marginPct: 0.55, stock: 100, variants: JSON.stringify({ pack: 5 }) },
 
     // Dev APIs
-    { name: 'Revenue Webhook Gateway', category: 'Dev APIs', price: 39.0, marginPct: 0.95, stock: 9999, variants: JSON.stringify({ rateLimit: '10k/min' }) },
-    { name: 'Billing Sync Engine API', category: 'Dev APIs', price: 89.0, marginPct: 0.92, stock: 9999, variants: JSON.stringify({ SLA: '99.99%' }) },
-    { name: 'Stripe/Recurly Connector', category: 'Dev APIs', price: 59.0, marginPct: 0.90, stock: 9999, variants: JSON.stringify({ sync: 'realtime' }) },
-    { name: 'Customer Identity Matcher API', category: 'Dev APIs', price: 119.0, marginPct: 0.94, stock: 9999, variants: JSON.stringify({ fuzzy: true }) },
+    { name: 'Revenue Webhook Gateway', category: 'Dev APIs', price: 2999, marginPct: 0.95, stock: 9999, variants: JSON.stringify({ rateLimit: '10k/min' }) },
+    { name: 'Billing Sync Engine API', category: 'Dev APIs', price: 6999, marginPct: 0.92, stock: 9999, variants: JSON.stringify({ SLA: '99.99%' }) },
+    { name: 'Stripe/Recurly Connector', category: 'Dev APIs', price: 4999, marginPct: 0.90, stock: 9999, variants: JSON.stringify({ sync: 'realtime' }) },
+    { name: 'Customer Identity Matcher API', category: 'Dev APIs', price: 9999, marginPct: 0.94, stock: 9999, variants: JSON.stringify({ fuzzy: true }) },
   ];
 
   // Fill up to 40 products
@@ -59,7 +59,7 @@ async function main() {
     productsData.push({
       name: `${cat} Module ${i}`,
       category: cat,
-      price: Math.floor(30 + (i * 14.5)),
+      price: Math.floor(2499 + (i * 1150)),
       marginPct: Number((0.6 + (i % 30) * 0.01).toFixed(2)),
       stock: 100 + i * 10,
       variants: JSON.stringify({ sku: `SKU-${i}` }),
