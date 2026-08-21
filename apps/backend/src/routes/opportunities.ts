@@ -41,3 +41,14 @@ opportunitiesRouter.get('/', async (_req, res) => {
     res.status(500).json({ error: 'Failed to compute revenue opportunities' });
   }
 });
+
+opportunitiesRouter.post('/:id/explain', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const result = await import('../services/gemini').then((m) => m.generateOpportunityExplanation(id));
+    res.json(result);
+  } catch (error) {
+    console.error('Error generating explanation:', error);
+    res.status(500).json({ error: 'Failed to generate explanation' });
+  }
+});
